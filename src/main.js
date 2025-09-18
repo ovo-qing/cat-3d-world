@@ -2,13 +2,15 @@
  * @Author: ovo-qing 3416998598@qq.com
  * @Date: 2025-06-24 14:43:53
  * @LastEditors: ovo-qing 3416998598@qq.com
- * @LastEditTime: 2025-09-18 14:15:55
+ * @LastEditTime: 2025-09-18 15:25:44
  * @FilePath: \map\src\main.js
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
-import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/loaders/GLTFLoader.js';
-import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/OrbitControls.js';
+// 加载器（注意 jsm/ 目录）
+import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
+// 控制器（注意 jsm/ 目录）
+import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js';
 
 // 全局状态管理 - 添加图片展示相关配置
 const appState = {
