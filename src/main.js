@@ -29,6 +29,7 @@ const appState = {
   // 动画相关
   mouseAnimationId: null,
   movePath: [],
+  movePath: [],
   currentPathIndex: 0,
   moveSpeed: 0.05,
   lastMoveTime: 0,
@@ -258,7 +259,8 @@ function initStartScene() {
         new THREE.MeshBasicMaterial({ 
           map: texture,
           transparent: true,
-          side: THREE.DoubleSide
+          side: THREE.DoubleSide,
+          opacity: 1 // 显式设置初始透明度
         })
       );
       
@@ -1199,52 +1201,49 @@ function handleMouseClick(e) {
   }
 }
 
-// 点击老鼠时更新PNG叠加层图片（带渐隐渐显效果）
+// 点击老鼠时更新PNG叠加层图片（带渐隐渐显效果）- 修复版
 function updatePngOverlayOnClick() {
   if (!appState.pngOverlay || !appState.pngOverlay.material) return;
   
+  // 1. 修正图片索引映射（确保与catImageSequence匹配）
   let imageIndex;
-  switch(appState.clickCount) {
-    case 0:
-      imageIndex = 1; // 第一次点击后显示小猫3
-      break;
-    case 1:
-    case 2:
-      imageIndex = 2; // 第二次及以后点击显示小猫5
-      break;
-    default:
-      imageIndex = 2;
+  if (appState.clickCount === 0) {
+    imageIndex = 1; // 第一次点击（clickCount从0→1）：显示小猫3（索引1）
+  } else if (appState.clickCount >= 1) {
+    imageIndex = 2; // 第二次（1→2）、第三次（2→3）点击：显示小猫5（索引2）
+  } else {
+    imageIndex = 0; // 异常情况默认显示初始图
   }
-  
+  // 确保索引不越界
   imageIndex = Math.min(Math.max(0, imageIndex), appState.catImageSequence.length - 1);
   
-  // 1. 开始渐隐动画
-  const fadeOutDuration = 200; // 渐隐持续时间（毫秒）
+  // 2. 渐隐动画：从透明度1渐变到0（强制重置初始透明度）
+  const fadeOutDuration = 200; // 渐隐时长（毫秒）
   const startTime = Date.now();
-  const originalOpacity = appState.pngOverlay.material.opacity !== undefined ? 
-                          appState.pngOverlay.material.opacity : 1;
+  const originalOpacity = 1; // 强制从1开始，避免前一次动画残留的透明度
   
-  // 确保材质支持透明度
+  // 确保材质支持透明
   appState.pngOverlay.material.transparent = true;
-  
+  appState.pngOverlay.material.opacity = originalOpacity; // 重置透明度
+
   function fadeOut() {
     const elapsed = Date.now() - startTime;
     const progress = Math.min(elapsed / fadeOutDuration, 1);
     appState.pngOverlay.material.opacity = originalOpacity * (1 - progress);
-    
+
     if (progress < 1) {
       requestAnimationFrame(fadeOut);
     } else {
-      // 2. 加载新图片
+      // 3. 加载新图片并强制触发材质更新
       const textureLoader = new THREE.TextureLoader();
       textureLoader.load(appState.catImageSequence[imageIndex], 
         (texture) => {
-          texture.alphaTest = 0.5;
+          texture.alphaTest = 0.5; // 保留Alpha通道（透明背景）
           appState.pngOverlay.material.map = texture;
-          appState.pngOverlay.material.needsUpdate = true;
+          appState.pngOverlay.material.needsUpdate = true; // 强制材质更新
           
-          // 3. 开始渐显动画
-          const fadeInDuration = 200; // 渐显持续时间（毫秒）
+          // 4. 渐显动画：从0渐变到1
+          const fadeInDuration = 200; // 渐显时长（毫秒）
           const fadeInStartTime = Date.now();
           
           function fadeIn() {
