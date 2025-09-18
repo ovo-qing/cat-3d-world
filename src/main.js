@@ -2,7 +2,7 @@
  * @Author: ovo-qing 3416998598@qq.com
  * @Date: 2025-06-24 14:43:53
  * @LastEditors: ovo-qing 3416998598@qq.com
- * @LastEditTime: 2025-09-18 15:25:44
+ * @LastEditTime: 2025-09-18 16:21:24
  * @FilePath: \map\src\main.js
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -32,9 +32,9 @@ const appState = {
   // 光标相关
   customCursor: null,
   mouseOriginalPos: new THREE.Vector3(),
-  cursorNormalImage: 'resource/小猫爪1.png',
-  cursorClickImage: 'resource/小猫爪2.png',
-  cursorHighlightImage: 'resource/小猫爪2.png',
+  cursorNormalImage: './resource/小猫爪1.png',
+  cursorClickImage: './resource/小猫爪2.png',
+  cursorHighlightImage: './resource/小猫爪2.png',
   isCursorInHighlight: false,
   // 动画相关
   mouseAnimationId: null,
@@ -51,7 +51,7 @@ const appState = {
   lastClickTime: 0,
   // 背景相关
   startSceneBackground: null,
-  prologueBackgroundImage: 'resource/6766.jpg',
+  prologueBackgroundImage: './resource/6766.jpg',
   prologueStartTime: 0, // 新增：序幕开始时间（用于着色器动画）
   prologueShaderMaterial: null, // 新增：序幕背景着色器材质
   earthShaderMaterial: null, // 新增：地球着色器材质
@@ -72,9 +72,9 @@ const appState = {
   pngOverlay: null,
   // 点击更换的图片序列
   catImageSequence: [
-    'resource/小猫1.png',  // 索引0: 初始显示
-    'resource/小猫3.png',  // 索引1: 第一次点击后
-    'resource/小猫5.png'   // 索引2: 第二次及以后点击后
+    './resource/小猫1.png',  // 索引0: 初始显示
+    './resource/小猫3.png',  // 索引1: 第一次点击后
+    './resource/小猫5.png'   // 索引2: 第二次及以后点击后
   ]
 };
 
@@ -338,7 +338,7 @@ function initStartScene() {
   startScene.add(groundContainer);
   
   // 背景图片
-  const backgroundImages = ['resource/miao1.jpg'];
+  const backgroundImages = ['./resource/miao1.jpg'];
   
   // 加载背景图
   const textureLoader = new THREE.TextureLoader();
@@ -423,7 +423,7 @@ function initStartScene() {
 
   // 加载老鼠模型
   const gltfLoader = new GLTFLoader();
-  gltfLoader.load('resource/mouse.glb',
+  gltfLoader.load('./resource/mouse.glb',
     (gltf) => {
       const mouseModel = gltf.scene;
       appState.mouseModel = mouseModel;
@@ -674,14 +674,14 @@ function initMainScene() {
 
   // 模型配置
   const modelsToLoad = [
-    { path: 'resource/diqiu.glb', position: new THREE.Vector3(0, 0, 0), scale: 3 },
-    { path: 'resource/mark.glb', position: new THREE.Vector3(4,6.5,4.3), scale:0.7 , name:'rls', rotation: { x: THREE.MathUtils.degToRad(80), y: THREE.MathUtils.degToRad(40), z: THREE.MathUtils.degToRad(120) } },
-    { path: 'resource/mark.glb', position: new THREE.Vector3(2.5,4, -6.5), scale:0.7 , name:'rb', rotation: { x: THREE.MathUtils.degToRad(110), y: THREE.MathUtils.degToRad(20), z: THREE.MathUtils.degToRad(20) } },
-    { path: 'resource/mark.glb', position: new THREE.Vector3(5.5,2,7.8), scale:0.7 , name:'trq', rotation: { x: THREE.MathUtils.degToRad(80), y: THREE.MathUtils.degToRad(10), z: THREE.MathUtils.degToRad(150) } },
-    { path: 'resource/mark.glb', position: new THREE.Vector3(2.3,2.4,9.3), scale:0.7 , name:'ydl', rotation: { x: THREE.MathUtils.degToRad(80), y: THREE.MathUtils.degToRad(0), z: THREE.MathUtils.degToRad(160) } },
-    { path: 'resource/mark.glb', position: new THREE.Vector3(1.5,4.7,8.3), scale:0.7 , name:'yg', rotation: { x: THREE.MathUtils.degToRad(50), y: THREE.MathUtils.degToRad(-10), z: THREE.MathUtils.degToRad(170) } },
-    { path: 'resource/mark.glb', position: new THREE.Vector3(8.7,-2.8, -1.3), scale:0.7 , name:'tg', rotation: { x: THREE.MathUtils.degToRad(100), y: THREE.MathUtils.degToRad(-10), z: THREE.MathUtils.degToRad(70) } },
-    { path: 'resource/mark.glb', position: new THREE.Vector3(5.5,0,8.5), scale:0.7 , name:'aj', rotation: { x: THREE.MathUtils.degToRad(80), y: THREE.MathUtils.degToRad(10), z: THREE.MathUtils.degToRad(150) } }
+    { path: './resource/diqiu.glb', position: new THREE.Vector3(0, 0, 0), scale: 3 },
+    { path: './resource/mark.glb', position: new THREE.Vector3(4,6.5,4.3), scale:0.7 , name:'rls', rotation: { x: THREE.MathUtils.degToRad(80), y: THREE.MathUtils.degToRad(40), z: THREE.MathUtils.degToRad(120) } },
+    { path: './resource/mark.glb', position: new THREE.Vector3(2.5,4, -6.5), scale:0.7 , name:'rb', rotation: { x: THREE.MathUtils.degToRad(110), y: THREE.MathUtils.degToRad(20), z: THREE.MathUtils.degToRad(20) } },
+    { path: './resource/mark.glb', position: new THREE.Vector3(5.5,2,7.8), scale:0.7 , name:'trq', rotation: { x: THREE.MathUtils.degToRad(80), y: THREE.MathUtils.degToRad(10), z: THREE.MathUtils.degToRad(150) } },
+    { path: './resource/mark.glb', position: new THREE.Vector3(2.3,2.4,9.3), scale:0.7 , name:'ydl', rotation: { x: THREE.MathUtils.degToRad(80), y: THREE.MathUtils.degToRad(0), z: THREE.MathUtils.degToRad(160) } },
+    { path: './resource/mark.glb', position: new THREE.Vector3(1.5,4.7,8.3), scale:0.7 , name:'yg', rotation: { x: THREE.MathUtils.degToRad(50), y: THREE.MathUtils.degToRad(-10), z: THREE.MathUtils.degToRad(170) } },
+    { path: './resource/mark.glb', position: new THREE.Vector3(8.7,-2.8, -1.3), scale:0.7 , name:'tg', rotation: { x: THREE.MathUtils.degToRad(100), y: THREE.MathUtils.degToRad(-10), z: THREE.MathUtils.degToRad(70) } },
+    { path: './resource/mark.glb', position: new THREE.Vector3(5.5,0,8.5), scale:0.7 , name:'aj', rotation: { x: THREE.MathUtils.degToRad(80), y: THREE.MathUtils.degToRad(10), z: THREE.MathUtils.degToRad(150) } }
   ];
 
   // 标记点交互变量
@@ -777,7 +777,7 @@ function initMainScene() {
         }
 
         // 如果是地球模型，添加呼吸发光着色器效果
-        if (modelInfo.path.includes('diqiu.glb')) {
+        if (modelInfo.path.includes('./diqiu.glb')) {
           originalModel.traverse((child) => {
             if (child.isMesh) {
               // 保存原始纹理
@@ -1070,7 +1070,7 @@ function initMainScene() {
 // 初始化背景音乐
 function initBackgroundMusic() {
   try {
-    const audio = new Audio('resource/Relax.mp3');
+    const audio = new Audio('./resource/Relax.mp3');
     audio.loop = true;
     audio.volume = 0.3;
     appState.backgroundMusic = audio;
@@ -1093,11 +1093,11 @@ function initBackgroundMusic() {
 // 初始化音效
 function initSoundEffects() {
   try {
-    const clickSound = new Audio('resource/Meow.ogg'); 
+    const clickSound = new Audio('./resource/Meow.ogg'); 
     clickSound.volume = 0.5;
     appState.clickSound = clickSound;
 
-    const highlightSound = new Audio('resource/click.ogg');
+    const highlightSound = new Audio('./resource/click.ogg');
     highlightSound.volume = 1;
     appState.highlightSound = highlightSound;
     
