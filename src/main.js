@@ -1,6 +1,14 @@
-import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+/*
+ * @Author: ovo-qing 3416998598@qq.com
+ * @Date: 2025-06-24 14:43:53
+ * @LastEditors: ovo-qing 3416998598@qq.com
+ * @LastEditTime: 2025-09-18 14:15:55
+ * @FilePath: \map\src\main.js
+ * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
+ */
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/loaders/GLTFLoader.js';
+import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/OrbitControls.js';
 
 // 全局状态管理 - 添加图片展示相关配置
 const appState = {
@@ -29,7 +37,6 @@ const appState = {
   // 动画相关
   mouseAnimationId: null,
   movePath: [],
-  movePath: [],
   currentPathIndex: 0,
   moveSpeed: 0.05,
   lastMoveTime: 0,
@@ -43,6 +50,9 @@ const appState = {
   // 背景相关
   startSceneBackground: null,
   prologueBackgroundImage: 'resource/6766.jpg',
+  prologueStartTime: 0, // 新增：序幕开始时间（用于着色器动画）
+  prologueShaderMaterial: null, // 新增：序幕背景着色器材质
+  earthShaderMaterial: null, // 新增：地球着色器材质
   // 标记点相关
   markImages: {},
   currentMarkImage: null,
@@ -112,6 +122,9 @@ function init() {
     // 绑定事件
     bindEvents();
 
+    // 记录序幕开始时间（用于着色器动画）
+    appState.prologueStartTime = Date.now();
+
     // 启动渲染循环
     animate();
     console.log('应用初始化成功');
@@ -134,7 +147,7 @@ function initDebugSphere() {
   appState.debugSphere.visible = appState.showDebugSphere;
 }
 
-// 序幕场景初始化
+// 序幕场景初始化 - 添加模糊过渡着色器
 function initPrologueScene() {
   prologueScene = new THREE.Scene();
   
@@ -157,7 +170,7 @@ function initPrologueScene() {
   // 设置黑色背景
   prologueScene.background = new THREE.Color(0x000000);
   
-  // 加载背景图（使用普通材质，不使用着色器）
+  // 加载背景图 - 使用着色器实现模糊到清晰过渡
   const textureLoader = new THREE.TextureLoader();
   textureLoader.load(appState.prologueBackgroundImage, 
     (texture) => {
@@ -177,14 +190,53 @@ function initPrologueScene() {
       const displayWidth = originalWidth * scaleFactor;
       const displayHeight = originalHeight * scaleFactor;
       
-      // 使用普通材质
-      const bgMaterial = new THREE.MeshBasicMaterial({
-        map: texture
+      // 创建着色器材质（替代MeshBasicMaterial）
+      const bgShaderMaterial = new THREE.ShaderMaterial({
+        vertexShader: `
+          varying vec2 vUv;
+          void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }
+        `,
+        fragmentShader: `
+          uniform sampler2D bgTexture;
+          uniform float progress; // 过渡进度（0~1）
+          varying vec2 vUv;
+          
+          // 简单模糊函数（取周围像素的平均值）
+          vec4 blur(sampler2D tex, vec2 uv) {
+            vec4 color = vec4(0.0);
+            float radius = 0.01 * (1.0 - progress); // 模糊半径随进度减小
+            for (int i = -2; i <= 2; i++) {
+              for (int j = -2; j <= 2; j++) {
+                color += texture2D(tex, uv + vec2(i, j) * radius);
+              }
+            }
+            return color / 25.0; // 平均25个像素
+          }
+          
+          void main() {
+            // 模糊效果（进度0时最模糊，进度1时清晰）
+            vec4 blurred = blur(bgTexture, vUv);
+            // 清晰原图
+            vec4 sharp = texture2D(bgTexture, vUv);
+            // 过渡混合
+            gl_FragColor = mix(blurred, sharp, progress);
+          }
+        `,
+        uniforms: {
+          bgTexture: { value: texture },
+          progress: { value: 0 } // 初始进度0（完全模糊）
+        }
       });
+      
+      // 保存材质到全局，用于更新进度
+      appState.prologueShaderMaterial = bgShaderMaterial;
       
       const bgPlane = new THREE.Mesh(
         new THREE.PlaneGeometry(displayWidth, displayHeight),
-        bgMaterial
+        bgShaderMaterial // 使用着色器材质
       );
       
       bgPlane.position.set(0, 0, -10);
@@ -259,8 +311,7 @@ function initStartScene() {
         new THREE.MeshBasicMaterial({ 
           map: texture,
           transparent: true,
-          side: THREE.DoubleSide,
-          opacity: 1 // 显式设置初始透明度
+          side: THREE.DoubleSide
         })
       );
       
@@ -531,7 +582,7 @@ function startMousePathMovement() {
   appState.mouseAnimationId = requestAnimationFrame(animateMovement);
 }
 
-// 主场景（第三幕）- 添加地点图片展示功能
+// 主场景（第三幕）- 添加地点图片展示功能和着色器效果
 function initMainScene() {
   mainScene = new THREE.Scene();
   mainScene.visible = false;
@@ -696,7 +747,7 @@ function initMainScene() {
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
   });
 
-  // 模型加载函数
+  // 模型加载函数 - 添加地球着色器效果
   function loadModel(modelInfo) {
     const loader = new GLTFLoader();
     
@@ -723,8 +774,60 @@ function initMainScene() {
           modelGroup.rotation.z = modelInfo.rotation.z || 0;
         }
 
+        // 如果是地球模型，添加呼吸发光着色器效果
+        if (modelInfo.path.includes('diqiu.glb')) {
+          originalModel.traverse((child) => {
+            if (child.isMesh) {
+              // 保存原始纹理
+              const originalTexture = child.material.map;
+              
+              // 创建地球着色器材质
+              const earthShaderMaterial = new THREE.ShaderMaterial({
+                vertexShader: `
+                  uniform float time; // 时间变量（用于动画）
+                  varying vec2 vUv; // 传递UV坐标给片元着色器
+                  
+                  void main() {
+                    vUv = uv; // 保存UV坐标（用于采样纹理）
+                    // 计算顶点位置（加入轻微的呼吸位移）
+                    vec3 newPosition = position + normal * sin(time) * 0.02;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
+                  }
+                `,
+                fragmentShader: `
+                  uniform sampler2D earthTexture; // 地球纹理
+                  uniform float time; // 时间变量
+                  varying vec2 vUv; // 接收顶点着色器的UV坐标
+                  
+                  void main() {
+                    // 采样地球纹理
+                    vec4 textureColor = texture2D(earthTexture, vUv);
+                    
+                    // 计算发光强度（随时间变化的呼吸效果）
+                    float glowStrength = 0.3 + sin(time) * 0.1; // 0.2~0.4之间变化
+                    
+                    // 边缘发光（基于UV坐标的边缘检测）
+                    float edge = smoothstep(0.45, 0.5, length(vUv - 0.5));
+                    vec3 glowColor = vec3(0.8, 1.0, 1.0) * glowStrength * edge; // 浅蓝色发光
+                    
+                    // 最终颜色 = 纹理颜色 + 发光颜色
+                    gl_FragColor = vec4(textureColor.rgb + glowColor, 1.0);
+                  }
+                `,
+                uniforms: {
+                  earthTexture: { value: originalTexture },
+                  time: { value: 0 }
+                }
+              });
+              
+              // 保存着色器材质到全局
+              appState.earthShaderMaterial = earthShaderMaterial;
+              child.material = earthShaderMaterial;
+            }
+          });
+        }
         // 为标记点设置明确标识
-        if (modelInfo.name) {
+        else if (modelInfo.name) {
           modelGroup.userData.isMark = true;
           modelGroup.userData.markName = modelInfo.name;
           
@@ -804,7 +907,7 @@ function initMainScene() {
     }
   }
 
-  // 标记点高亮函数 - 使用脉冲着色器效果（保留）
+  // 标记点高亮函数 - 使用脉冲着色器效果
   function highlightMark(markObject) {
     if (markObject.isMesh && markObject.userData.originalMaterial) {
       // 如果还没有创建着色器材质，初始化一次
@@ -855,6 +958,11 @@ function initMainScene() {
   appState.mainUpdate = () => {
     if (!mainControls || !tooltip) return;
     mainControls.update();
+    
+    // 更新地球着色器的时间变量（让呼吸效果动起来）
+    if (appState.earthShaderMaterial) {
+      appState.earthShaderMaterial.uniforms.time.value += 0.01;
+    }
     
     // 如果有悬停的标记点，更新其着色器时间（让脉冲效果动起来）
     if (lastHoveredMark && lastHoveredMark.userData.shaderMaterial) {
@@ -1201,49 +1309,52 @@ function handleMouseClick(e) {
   }
 }
 
-// 点击老鼠时更新PNG叠加层图片（带渐隐渐显效果）- 修复版
+// 点击老鼠时更新PNG叠加层图片（带渐隐渐显效果）
 function updatePngOverlayOnClick() {
   if (!appState.pngOverlay || !appState.pngOverlay.material) return;
   
-  // 1. 修正图片索引映射（确保与catImageSequence匹配）
   let imageIndex;
-  if (appState.clickCount === 0) {
-    imageIndex = 1; // 第一次点击（clickCount从0→1）：显示小猫3（索引1）
-  } else if (appState.clickCount >= 1) {
-    imageIndex = 2; // 第二次（1→2）、第三次（2→3）点击：显示小猫5（索引2）
-  } else {
-    imageIndex = 0; // 异常情况默认显示初始图
+  switch(appState.clickCount) {
+    case 0:
+      imageIndex = 1; // 第一次点击后显示小猫3
+      break;
+    case 1:
+    case 2:
+      imageIndex = 2; // 第二次及以后点击显示小猫5
+      break;
+    default:
+      imageIndex = 2;
   }
-  // 确保索引不越界
+  
   imageIndex = Math.min(Math.max(0, imageIndex), appState.catImageSequence.length - 1);
   
-  // 2. 渐隐动画：从透明度1渐变到0（强制重置初始透明度）
-  const fadeOutDuration = 200; // 渐隐时长（毫秒）
+  // 1. 开始渐隐动画
+  const fadeOutDuration = 200; // 渐隐持续时间（毫秒）
   const startTime = Date.now();
-  const originalOpacity = 1; // 强制从1开始，避免前一次动画残留的透明度
+  const originalOpacity = appState.pngOverlay.material.opacity !== undefined ? 
+                          appState.pngOverlay.material.opacity : 1;
   
-  // 确保材质支持透明
+  // 确保材质支持透明度
   appState.pngOverlay.material.transparent = true;
-  appState.pngOverlay.material.opacity = originalOpacity; // 重置透明度
-
+  
   function fadeOut() {
     const elapsed = Date.now() - startTime;
     const progress = Math.min(elapsed / fadeOutDuration, 1);
     appState.pngOverlay.material.opacity = originalOpacity * (1 - progress);
-
+    
     if (progress < 1) {
       requestAnimationFrame(fadeOut);
     } else {
-      // 3. 加载新图片并强制触发材质更新
+      // 2. 加载新图片
       const textureLoader = new THREE.TextureLoader();
       textureLoader.load(appState.catImageSequence[imageIndex], 
         (texture) => {
-          texture.alphaTest = 0.5; // 保留Alpha通道（透明背景）
+          texture.alphaTest = 0.5;
           appState.pngOverlay.material.map = texture;
-          appState.pngOverlay.material.needsUpdate = true; // 强制材质更新
+          appState.pngOverlay.material.needsUpdate = true;
           
-          // 4. 渐显动画：从0渐变到1
-          const fadeInDuration = 200; // 渐显时长（毫秒）
+          // 3. 开始渐显动画
+          const fadeInDuration = 200; // 渐显持续时间（毫秒）
           const fadeInStartTime = Date.now();
           
           function fadeIn() {
@@ -1372,9 +1483,17 @@ function switchToScene(sceneName) {
   transition();
 }
 
-// 渲染循环
+// 渲染循环 - 添加着色器动画更新
 function animate() {
   requestAnimationFrame(animate);
+  
+  // 序幕场景：更新背景模糊过渡进度
+  if (appState.currentView === 'prologue' && appState.prologueShaderMaterial) {
+    const maxProgress = 1;
+    const duration = 2000; // 2秒完成过渡
+    const elapsed = Date.now() - appState.prologueStartTime;
+    appState.prologueShaderMaterial.uniforms.progress.value = Math.min(elapsed / duration, maxProgress);
+  }
 
   if (appState.currentView === 'main' && appState.mainUpdate) {
     appState.mainUpdate();
